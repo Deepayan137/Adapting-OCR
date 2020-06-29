@@ -1,7 +1,9 @@
 # Adapting-OCR
-Pytorch implementation of our [Adapting OCR with limited labels](http://cdn.iiit.ac.in/cdn/cvit.iiit.ac.in/images/ConferencePapers/2020/AdaptingOCR_Deepayan_DAS2020_final.pdf)
+Pytorch implementation of our paper [Adapting OCR with limited labels](http://cdn.iiit.ac.in/cdn/cvit.iiit.ac.in/images/ConferencePapers/2020/AdaptingOCR_Deepayan_DAS2020_final.pdf)
 
-![](images/QualResults.png)
+![Qualitative Result of our Base, self-trained and hybrid model for English
+(left) and Hindi (right) datasets. Here ST+FT refers to the model trained using
+the proposed hybrid approach.](images/QualResults.png)
 
 ## Dependency
 
