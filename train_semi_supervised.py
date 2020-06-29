@@ -15,7 +15,7 @@ from torch.utils.data import random_split
 from src.modules.trainer import OCRTrainer
 from src.utils.utils import EarlyStopping, gmkdir
 from src.models.crnn import CRNN
-from src.options.opts import base_opts
+from src.options.ss_opts import base_opts
 from src.data.pickle_dataset import PickleDataset
 from src.data.synth_dataset import  SynthCollator
 from src.criterions.ctc import CustomCTCLoss 
@@ -80,12 +80,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # Loading souce data
     args.imgdir = 'English_consortium'
-    args.source_data = PickleDataset(args)
+    args.source_data = SynthDataset(args)
     args.collate_fn = SynthCollator()
     # Loading target data an splitting 
     # into train and val
     args.imgdir = 'English_unannotated'
-    target_data = PickleDataset(args)
+    target_data = SynthDataset(args)
     train_split = int(0.8*len(target_data))
     val_split = len(target_data) - train_split
     args.data_train, args.data_val = random_split(target_data, (train_split, val_split))
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     sampler.get_samples(train_on_pred=args.train_on_pred, 
         combine_scoring=args.combine_scoring)
     # Joining source and top samples
-    args.top_samples = PickleDataset(args)
+    args.top_samples = SynthDataset(args)
     args.data_train = torch.utils.data.ConcatDataset([args.source_data, args.top_samples])
     print('Traininig Data Size:{}\nVal Data Size:{}'.format(
         len(args.data_train), len(args.data_val)))

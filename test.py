@@ -61,7 +61,7 @@ def main(**kwargs):
     parser = ArgumentParser()
     base_opts(parser)
     args = parser.parse_args()
-    args.data = PickleDataset(args)
+    args.data = SynthDataset(args)
     args.collate_fn = SynthCollator()
     args.alphabet = """Only thewigsofrcvdampbkuq.$A-210xT5'MDL,RYHJ"ISPWENj&BC93VGFKz();#:!7U64Q8?+*ZX/%""" 
     args.nClasses = len(args.alphabet)
