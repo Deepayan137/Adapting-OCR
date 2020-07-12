@@ -11,13 +11,13 @@ import numpy as np
 import os
 import sys
 import pdb
-from data.create_ndli import createDataset
+from src.data.create_ndli import createDataset
 
 class NDLIDataset(Dataset):
-    def __init__(self):
+    def __init__(self, args):
         super(NDLIDataset, self).__init__()
-        path = '/ssd_scratch/cvit/deep/data/'
-        imgdir = 'telugu'
+        path = args.path
+        imgdir = args.imgdir
         outputPath = os.path.join(path, imgdir)
         lmdbPath = os.path.join(path, imgdir,
                 '%s.lmdb'%imgdir)

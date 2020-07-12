@@ -37,43 +37,6 @@ class LearnerSemi(Learner):
             self.model = nn.DataParallel(self.model)
         self.best_score = None
 
-    def freeze(self, index, boolean=False):
-        layer = self.get_layer_groups()[index]
-        for params in layer.parameters():
-            params.requires_grad = boolean
-
-    def freeze_all_but(self, index):
-        n_layers = len(self.get_layer_groups())
-        for i in range(n_layers):
-            self.freeze(i)
-        self.freeze(index, boolean=True)
-
-    def unfreeze(self, index):
-        self.freeze(index, boolean=True)
-
-    def unfreeze_all(self):
-        n_layers = len(self.get_layer_groups())
-        for i in range(n_layers):
-            self.unfreeze(i)
-
-    def child(self, x):
-        return list(x.children())
-    
-    def recursive_(self, child):
-        if hasattr(child, 'children'):
-            if len(self.child(child)) != 0:
-                child = self.child(child)
-                return self.recursive_(child)
-        return child
-
-    def get_layer_groups(self):
-        children = []
-        for child in self.child(self.model):
-            children.extend(self.recursive_(child))
-        children = [child for child in children if list(child.parameters())]
-        return children
-        
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     base_opts(parser)
@@ -97,8 +60,6 @@ if __name__ == '__main__':
     model = model.cuda()
     args.criterion = CustomCTCLoss()
     savepath = os.path.join(args.save_dir, args.name)
-    gmkdir(savepath)
-    gmkdir(args.log_dir)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     # Loading specific model to get top samples
     resume_file = savepath + '/' + 'best.ckpt'

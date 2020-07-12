@@ -26,7 +26,6 @@ class OCRTrainer(object):
         self.criterion = opt.criterion
         self.optimizer = opt.optimizer
         self.schedule = opt.schedule
-        self.alpha = opt.alpha
         self.converter = OCRLabelConverter(opt.alphabet)
         self.evaluator = Eval()
         print('Scheduling is {}'.format(self.schedule))
@@ -37,6 +36,7 @@ class OCRTrainer(object):
         self.cuda = opt.cuda
         self.collate_fn = opt.collate_fn
         self.noise = opt.noise
+        self.alpha = opt.alpha
         self.init_meters()
 
     def init_meters(self):

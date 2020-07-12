@@ -117,7 +117,7 @@ def writeCache(env, cache):
 def createDataset(path, language):
     books = os.listdir(path)
     all_pairs = []
-    for book in tqdm(books[:5]):
+    for book in tqdm(books):
         book_path = os.path.join(path, book)
         pairs = read_book(book_path=book_path)
         all_pairs.extend(pairs)

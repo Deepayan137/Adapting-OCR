@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pdb
 import numpy as np
+import os
 import random
 class BidirectionalLSTM(nn.Module):
 
@@ -91,6 +92,34 @@ class CRNN(nn.Module):
             BidirectionalLSTM(opt.nHidden*2, opt.nHidden, opt.nHidden),
             BidirectionalLSTM(opt.nHidden, opt.nHidden, opt.nClasses))
 
+
+    def forward(self, input):
+        # conv features
+        conv = self.cnn(input)
+        b, c, h, w = conv.size()
+        assert h == 1, "the height of conv must be 1"
+        conv = conv.squeeze(2)
+        conv = conv.permute(2, 0, 1)  # [w, b, c]
+        # rnn features
+        output = self.rnn(conv)
+        output = output.transpose(1,0) #Tbh to bth
+        return output
+
+class PretrainedCRNN(nn.Module):
+    def __init__(self, opt):
+        super(PretrainedCRNN, self).__init__()
+        opt.nClasses = opt.source_nClasses
+        self.crnn = CRNN(opt)
+        savepath = os.path.join(opt.save_dir, opt.source_name)
+        resume_file = savepath + '/' + 'best.ckpt'
+        print('Loading model %s'%resume_file)
+        checkpoint = torch.load(resume_file)
+        self.crnn.load_state_dict(checkpoint['state_dict'])
+        layers = []
+        self.cnn = nn.Sequential(*list(self.crnn.children())[0])
+        self.rnn = nn.Sequential(
+            BidirectionalLSTM(opt.nHidden*2, opt.nHidden, opt.nHidden),
+            BidirectionalLSTM(opt.nHidden, opt.nHidden, opt.target_nClasses))
 
     def forward(self, input):
         # conv features

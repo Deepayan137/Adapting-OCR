@@ -10,6 +10,7 @@ def base_opts(parser):
     parser.add_argument("--imgdir", type=str, default='source_bold')
     parser.add_argument("--log_dir", type=str, default='logs')
     parser.add_argument("--save_dir", type=str, default='saves')
+    parser.add_argument("--lang", type=str, default='English')
     
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--imgH", type=int, default=32)
