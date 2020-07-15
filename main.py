@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 from src.modules.trainer import OCRTrainer
 from src.utils.utils import EarlyStopping, gmkdir
 from src.models.crnn import CRNN
+from src.models.layers import MultiTaskCRNN
 from src.options.opts import base_opts
 # from src.data.synth_dataset import SynthDataset, SynthCollator
 # from src.data.pickle_dataset import PickleDataset
@@ -37,13 +38,14 @@ class Learner(object):
             print("Let's use", torch.cuda.device_count(), "GPUs!")
             self.model = nn.DataParallel(self.model)
         self.best_score = None
-        if resume and os.path.exists(self.checkpoint_name):
-            self.checkpoint = torch.load(self.checkpoint_name)
-            self.epoch = self.checkpoint['epoch']
-            self.best_score=self.checkpoint['best']
-            self.load()
-        else:
-            print('checkpoint does not exist')
+        if resume:
+            if os.path.exists(self.checkpoint_name):
+                self.checkpoint = torch.load(self.checkpoint_name)
+                self.epoch = self.checkpoint['epoch']
+                self.best_score=self.checkpoint['best']
+                self.load()
+            else:
+                print('checkpoint does not exist')
         self.log_name = os.path.join(savepath, 'loss_log.csv')
         with open(self.log_name, "a") as log_file:
             now = time.strftime("%c")
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     
     data = NDLIDataset(args)
     args.collate_fn = NDLICollator()
-    train_split = int(0.8*len(data))
+    train_split = int(0.9*len(data))
     val_split = len(data) - train_split
     args.data_train, args.data_val = random_split(data, (train_split, val_split))
     print('Traininig Data Size:{}\nVal Data Size:{}'.format(
@@ -108,12 +110,15 @@ if __name__ == '__main__':
     args.alphabet = ''.join(list(vocab['v2i'].keys()))
 
     args.nClasses = len(args.alphabet)
-    model = CRNN(args)
+    # model = CRNN(args)
+    model = MultiTaskCRNN(args)
     args.criterion = CustomCTCLoss()
     savepath = os.path.join(args.save_dir, args.name)
     gmkdir(savepath)
     gmkdir(args.log_dir)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam([{'params': model.cnn.parameters(), 'lr': 1e-4},
+        {'params': model.rnn.parameters()}], lr=0.001)
     args.alpha = 0
     args.noise = False
     learner = Learner(model, optimizer, savepath=savepath, resume=args.resume)

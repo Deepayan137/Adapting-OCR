@@ -16,12 +16,11 @@ import pickle
 class PickleDataset(Dataset):
     def __init__(self, opt):
         super(PickleDataset, self).__init__()
-        pickle_file = os.path.join(opt.path, opt.imgdir, '%s.data.pkl'%opt.language)
+        pickle_file = os.path.join(opt.path, opt.imgdir, '%s.data.pkl'%opt.lang)
         with open(pickle_file, 'rb') as f:
             self.data = pickle.load(f)
         self.nSamples = len(self.data['train'])
-       	transform_list =  [transforms.Grayscale(1),
-                            transforms.ToTensor(), 
+       	transform_list =  [transforms.ToTensor(), 
                             transforms.Normalize((0.5,), (0.5,))]
         self.transform = transforms.Compose(transform_list)
 

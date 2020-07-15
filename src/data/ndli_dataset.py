@@ -18,11 +18,13 @@ class NDLIDataset(Dataset):
         super(NDLIDataset, self).__init__()
         path = args.path
         imgdir = args.imgdir
+        self.lang = args.lang
         outputPath = os.path.join(path, imgdir)
         lmdbPath = os.path.join(path, imgdir,
                 '%s.lmdb'%imgdir)
         if not os.path.exists(lmdbPath):
-           createDataset(outputPath, imgdir) 
+            print('creating data at %s'%lmdbPath)
+            createDataset(outputPath, imgdir) 
         self.env = lmdb.open(
             os.path.abspath(lmdbPath),
             max_readers=1,
@@ -41,7 +43,7 @@ class NDLIDataset(Dataset):
 
         transform_list = [transforms.ToTensor(), 
             transforms.Normalize((0.5,), (0.5,))]
-        transform = transforms.Compose(transform_list)
+        transform = transforms.Compose(transform_list)  #transforms.RandomCrop(size=(32, 100), pad_if_needed=True, fill=1)
         self.transform = transform
         
     def __len__(self):
@@ -63,15 +65,16 @@ class NDLIDataset(Dataset):
             except IOError:
                 print('Corrupted image for %d' % index)
                 return self[index + 1]
-
             if self.transform is not None:
                 img = self.transform(img)
-            item = {'img': img, 'img_path': img_key, 'idx':index}
-
-        
             label_key = 'label-%09d' % index
             label = txn.get(label_key.encode('utf-8'))
-            item['label'] = label.decode('utf-8')
+            label = label.decode('utf-8')
+            # if img.shape[-1] > 1100:
+            #     img = torch.zeros((1, 32, 32))
+            #     labe = ' '
+            item = {'img': img, 'img_path': img_key, 'idx':index, 'label':label}
+            item['lang'] = self.lang
         return item
 
 
@@ -91,8 +94,7 @@ class NDLICollator(object):
         if 'label' in batch[0].keys():
             labels = [item['label'] for item in batch]
             item['label'] = labels
+        if 'lang' in batch[0].keys():
+            langs = [item['lang'] for item in batch]
+            item['lang'] = langs
         return item
-
-
-# data = NDLIDataset()
-# print(data[0])

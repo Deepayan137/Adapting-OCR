@@ -121,12 +121,13 @@ def createDataset(path, language):
         book_path = os.path.join(path, book)
         pairs = read_book(book_path=book_path)
         all_pairs.extend(pairs)
-    # if os.path.exists(outputPath):
-    #     shutil.rmtree(outputPath)
-    #     os.makedirs(outputPath)
-    # else:
-    #     os.makedirs(outputPath)
     outputPath = os.path.join(path, '%s.lmdb'%language)
+    if os.path.exists(outputPath):
+        shutil.rmtree(outputPath)
+        os.makedirs(outputPath)
+    else:
+        os.makedirs(outputPath)
+    
     env = lmdb.open(outputPath, map_size=1099511627776)
     cache = {}
     cnt = 1
@@ -145,7 +146,7 @@ def createDataset(path, language):
         if cnt % 1000 == 0:
             writeCache(env, cache)
             cache = {}
-            print('Written %d / %d' % (cnt, nSamples))
+            # print('Written %d / %d' % (cnt, nSamples))
         cnt += 1
 
     nSamples = cnt - 1

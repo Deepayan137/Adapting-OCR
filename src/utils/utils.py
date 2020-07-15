@@ -22,7 +22,7 @@ import string
 from textdistance import levenshtein as lev
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+ # srun --pty --partition=long --nodelist=gnode07 --gres=gpu:2 --cpus-per-task=25 --mem=11G --time=96:00:00 bash 
 
 def similarity(word1, word2):
     return lev.normalized_distance(word1, word2)
@@ -89,8 +89,12 @@ def text_align(prWords, gtWords):
             adjMat[i, j] = similarity(prWords[i], gtWords[j])
     pr_aligned=[]
     for i in range(len(prWords)):
-        nn = list(map(lambda x:gtWords[x], np.argsort(adjMat[i, :])[:1])) 
-        pr_aligned.append((prWords[i], nn[0]))
+        nn = list(map(lambda x:gtWords[x], np.argsort(adjMat[i, :])[:1]))
+        try: 
+            pr_aligned.append((prWords[i], nn[0]))
+        except:
+            pdb.set_trace()
+            return pr_aligned
     return pr_aligned
 
 class EarlyStopping:
@@ -229,9 +233,34 @@ class Eval:
 
     def word_accuracy_line(self, pairs):
         preds, truths = pairs
-        word_pairs = text_align(preds.split(), truths.split())
-        word_acc = np.mean((list(map(self.word_accuracy, word_pairs))))
-        return word_acc
+        if len(preds) > 0 and len(truths) > 0:
+            word_pairs = text_align(preds.split(), truths.split())
+            word_acc = np.mean((list(map(self.word_accuracy, word_pairs))))
+            if math.isnan(word_acc):
+                word_acc = 0.0
+            return word_acc*100.0
+        return 0.0
+
+class LangConverter(object):
+    def __init__(self):
+        classes = ['Tamil', 'Telugu', 'Hindi']
+        self.label2int = {}
+        for i, cl in enumerate(classes):
+            self.label2int[cl] = i
+        self.int2label = {v:k for k,v in self.label2int.items()}
+
+    def encode(self, labels):
+        result = []
+        for label in labels:
+            result.append(self.label2int[label])
+        labels = result
+        return torch.LongTensor(labels)
+
+    def decode(self, indices):
+        result = []
+        for index in indices:
+            result.append(self.int2label[index.item()])
+        return result
 
 class OCRLabelConverter(object):
     """Convert between str and label.

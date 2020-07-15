@@ -29,7 +29,8 @@ class OCRTrainer(object):
         self.converter = OCRLabelConverter(opt.alphabet)
         self.evaluator = Eval()
         print('Scheduling is {}'.format(self.schedule))
-        self.scheduler = STLR(self.optimizer, T_max=opt.epochs)
+        if self.schedule:
+            self.scheduler = STLR(self.optimizer, T_max=opt.epochs)
         self.batch_size = opt.batch_size
         self.count = opt.epoch
         self.epochs = opt.epochs
@@ -107,7 +108,7 @@ class OCRTrainer(object):
             preds = preds.transpose(1, 0).contiguous().view(-1)
             sim_preds = self.converter.decode(preds.data, pred_sizes.data, raw=False)
             ca = np.mean((list(map(self.evaluator.char_accuracy, list(zip(sim_preds, batch['label']))))))
-            wa = np.mean((list(map(self.evaluator.word_accuracy, list(zip(sim_preds, batch['label']))))))
+            wa = np.mean((list(map(self.evaluator.word_accuracy_line, list(zip(sim_preds, batch['label']))))))
         return loss, ca, wa
 
     def run_epoch(self, validation=False):
@@ -187,7 +188,6 @@ class OCRTrainer(object):
 
         result = {'train_loss': train_loss_mean, 'train_ca': train_ca_mean,
         'train_wa': train_wa_mean}
-        # result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': train_loss_mean}
         return result
 
     def validation_end(self, outputs):
@@ -202,7 +202,6 @@ class OCRTrainer(object):
 
         result = {'val_loss': val_loss_mean, 'val_ca': val_ca_mean,
         'val_wa': val_wa_mean}
-        # result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': val_loss_mean}
         return result
 
 

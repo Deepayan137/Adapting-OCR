@@ -20,8 +20,9 @@ from src.options.opts import base_opts
 from src.criterions.ctc import CustomCTCLoss
 from src.utils.utils import *
 from src.models.crnn import CRNN
-from src.data.pickle_dataset import PickleDataset
-from src.data.synth_dataset import SynthDataset, SynthCollator
+# from src.data.pickle_dataset import PickleDataset
+# from src.data.synth_dataset import SynthDataset, SynthCollator
+from src.data.ndli_dataset import NDLIDataset, NDLICollator
 
 warnings.filterwarnings("ignore")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -61,13 +62,17 @@ def main(**kwargs):
     parser = ArgumentParser()
     base_opts(parser)
     args = parser.parse_args()
-    args.data = SynthDataset(args)
-    args.collate_fn = SynthCollator()
-    args.alphabet = """Only thewigsofrcvdampbkuq.$A-210xT5'MDL,RYHJ"ISPWENj&BC93VGFKz();#:!7U64Q8?+*ZX/%""" 
+    args.data = NDLIDataset(args)
+    args.collate_fn = NDLICollator()
+    vocabfile = 'lookups/' + 'Tamil.vocab.json'
+    with open(vocabfile, 'r') as f:
+        vocab = json.load(f)
+    args.alphabet = ''.join(list(vocab['v2i'].keys()))
     args.nClasses = len(args.alphabet)
     model = CRNN(args)
     model = model.cuda()
-    resume_file = os.path.join(args.save_dir, args.name, 'finetuned.ckpt')
+    savepath = os.path.join(args.save_dir, args.name)
+    resume_file = os.path.join(savepath, 'best.ckpt')
     if os.path.isfile(resume_file):
         print('Loading model %s'%resume_file)
         checkpoint = torch.load(resume_file)
@@ -76,7 +81,7 @@ def main(**kwargs):
         ca, wa = get_accuracy(args)
         print("Character Accuracy: %.2f\nWord Accuracy: %.2f"%(ca, wa))
     else:
-        print("=> no checkpoint found at '{}'".format(save_file))
+        print("=> no checkpoint found at '{}'".format(resume_file))
         print('Exiting')
 
     

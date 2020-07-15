@@ -9,6 +9,7 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+from tqdm import *
 import torch.nn.functional as F
 from argparse import ArgumentParser
 import itertools 
@@ -22,7 +23,12 @@ from src.data.ndli_dataset import NDLIDataset, NDLICollator
 from src.criterions.ctc import CustomCTCLoss 
 from src.utils.top_sampler import SamplingTop
 from main import Learner
-
+from src.utils.utils import AverageMeter, Eval, OCRLabelConverter
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+torch.manual_seed(0)
+np.random.seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 class LearnerFinetune(Learner):
     def __init__(self, model, optimizer, savepath=None, resume=False):
         self.model = model
@@ -79,13 +85,39 @@ class LearnerFinetune(Learner):
         children = [child for child in children if list(child.parameters())]
         return children
 
+    def get_accuracy(self, args):
+        loader = torch.utils.data.DataLoader(args.data,
+                    batch_size=args.batch_size,
+                    collate_fn=args.collate_fn)
+        model = args.model
+        model.eval()
+        converter = OCRLabelConverter(args.alphabet)
+        evaluator = Eval()
+        labels, predictions = [], []
+        for iteration, batch in enumerate(tqdm(loader)):
+            input_, targets = batch['img'].to(device), batch['label']
+            labels.extend(targets)
+            targets, lengths = converter.encode(targets)
+            logits = model(input_).transpose(1, 0)
+            logits = torch.nn.functional.log_softmax(logits, 2)
+            logits = logits.contiguous().cpu()
+            T, B, H = logits.size()
+            pred_sizes = torch.LongTensor([T for i in range(B)])
+            probs, pos = logits.max(2)
+            pos = pos.transpose(1, 0).contiguous().view(-1)
+            sim_preds = converter.decode(pos.data, pred_sizes.data, raw=False)
+            predictions.extend(sim_preds)
+        ca = np.mean((list(map(evaluator.char_accuracy, list(zip(predictions, labels))))))
+        wa = np.nanmean((list(map(evaluator.word_accuracy_line, list(zip(predictions, labels))))))
+        return ca, wa
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     base_opts(parser)
     args = parser.parse_args()
     data = NDLIDataset(args)
     args.collate_fn = NDLICollator()
-    train_split = int(0.8*len(data))
+    train_split = int(0.9*len(data))
     val_split = len(data) - train_split
     args.data_train, args.data_val = random_split(data, (train_split, val_split))
     print('Traininig Data Size:{}\nVal Data Size:{}'.format(
@@ -106,15 +138,46 @@ if __name__ == '__main__':
     model = PretrainedCRNN(args)
     
     args.criterion = CustomCTCLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
     args.alpha = 0
     args.noise = False
     savepath = os.path.join(args.save_dir, args.target_name)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     gmkdir(savepath)
-    learner = LearnerFinetune(model, optimizer, savepath=savepath, resume=args.resume)
-    layers = learner.get_layer_groups()
-    learner.freeze_all_but(-1)
-    learner.unfreeze(-2)
-    learner.fit(args)
+    learner = LearnerFinetune(model, optimizer, 
+            savepath=savepath, resume=args.resume)
     
+    if args.mode == 'train':
+        # layers = learner.get_layer_groups()
+        # args.epochs = 2
+        # args.schedule = False
+        # learner.freeze_all_but(-1)
+        # learner.unfreeze(-2)
+        learner.fit(args)
+        # for i in range(1,len(layers[:-2])):
+        #     if i%3 != 0:
+        #         print('Finetuning %d/%d'%(i, len(layers)))
+        #         learner.unfreeze(i)
+        #         learner.fit(args)
+        # learner.unfreeze_all()
+        args.epochs = 50
+        args.schedule = True
+        learner.fit(args)
+    elif args.mode == 'test':
+        args.data = NDLIDataset(args)
+        args.collate_fn = NDLICollator()
+        savepath = os.path.join(args.save_dir, args.target_name)
+        resume_file = os.path.join(savepath, 'finetuned.ckpt')
+        if os.path.isfile(resume_file):
+            print('Loading model %s'%resume_file)
+            checkpoint = torch.load(resume_file)
+            model.load_state_dict(checkpoint['state_dict'])
+            args.model = model
+            ca, wa = learner.get_accuracy(args)
+            print("Character Accuracy: %.2f\nWord Accuracy: %.2f"%(ca, wa))
+        else:
+            print("=> no checkpoint found at '{}'".format(resume_file))
+            print('Exiting')
+    
+
+
+    # python -m finetune --source_name teluguocr --target_name tamilocr_frozen_wts --source_lang Telugu --target_lang Tamil --path /ssd_scratch/cvit/deep/data/tamil --imgdir train
