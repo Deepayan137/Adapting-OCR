@@ -16,7 +16,6 @@ from argparse import ArgumentParser
 from src.modules.trainer import OCRTrainer
 from src.utils.utils import EarlyStopping, gmkdir
 from src.models.crnn import CRNN
-from src.models.layers import MultiTaskCRNN
 from src.options.opts import base_opts
 # from src.data.synth_dataset import SynthDataset, SynthCollator
 # from src.data.pickle_dataset import PickleDataset
@@ -110,8 +109,7 @@ if __name__ == '__main__':
     args.alphabet = ''.join(list(vocab['v2i'].keys()))
 
     args.nClasses = len(args.alphabet)
-    # model = CRNN(args)
-    model = MultiTaskCRNN(args)
+    model = CRNN(args)
     args.criterion = CustomCTCLoss()
     savepath = os.path.join(args.save_dir, args.name)
     gmkdir(savepath)

@@ -11,6 +11,7 @@ class BidirectionalLSTM(nn.Module):
         super(BidirectionalLSTM, self).__init__()
         self.rnn = nn.LSTM(nIn, nHidden, bidirectional=True)
         self.embedding = nn.Linear(nHidden * 2, nOut)
+    
     def forward(self, input):
         self.rnn.flatten_parameters()
         recurrent, _ = self.rnn(input)

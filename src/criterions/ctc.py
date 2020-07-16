@@ -33,5 +33,6 @@ class CustomCTCLoss(torch.nn.Module):
             print("logits:", logits.size())
             print("prediction_sizes:", prediction_sizes)
             print("target_sizes:", target_sizes)
+            pdb.set_trace()
             raise Exception("NaN loss obtained. But why?")
         return loss
