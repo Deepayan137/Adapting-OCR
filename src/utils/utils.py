@@ -9,7 +9,6 @@ import os
 import pickle
 import math
 from PIL import Image
-import Levenshtein as lev
 from operator import eq
 import cv2
 import random
