@@ -8,7 +8,8 @@ the proposed hybrid approach.](images/QualResults.png)
 ## Dependency
 
 * This work was tested with PyTorch 1.2.0, CUDA 9.0, python 3.6 and Ubuntu 16.04.
-* requirements can be found in the file. 
+* requirements can be found in the file.
+* Also, please do a `pip install pytorch-pretrained-bert` as one of our kind contributors pointed out :)
 * command to create environment from the file is `conda create -n pytorch1.4 --file env.txt`
 * To activate the environment use: `source activate pytorch1.4`
 
