@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import types
 import math
-from torch._six import inf
+from torch import inf
 from functools import wraps
 import warnings
 import weakref
